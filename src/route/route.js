@@ -17,6 +17,8 @@ router.get("/user/:userId/profile",MW.authentication,user.getUser)
 
 router.put("/user/:userId/profile",MW.authentication,MW.authorization,user.updateUser)
 
+router.put("/user/:userId/changePassword",MW.authentication,MW.authorization,user.passwordChange)
+
 
 //------------------------------------Product-------------------------------------------//
 

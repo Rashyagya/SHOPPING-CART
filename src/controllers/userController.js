@@ -125,9 +125,9 @@ const loginUser = async function (req, res) {
   try {
     let data = req.body;
     if (Validator.isValidBody(data)) {
-      return res.status(400).send({status: false,message: "User data is required for login"});
+      return res.status(400).send({ status: false, message: "User data is required for login" });
     }
-    
+
     let { email, password } = data;
 
     //Validation for Email
@@ -155,10 +155,7 @@ const loginUser = async function (req, res) {
       return res.status(401).send({ status: false, message: "Incorrect Password" });
     }
 
-    const token = jwt.sign(
-      {
-        userId: hash._id,
-      },
+    const token = jwt.sign({ userId: hash._id, },
       "group-22-productManangement",
       { expiresIn: "10hr" }
     );
@@ -173,6 +170,51 @@ const loginUser = async function (req, res) {
     res.status(500).send({ status: false, message: err.message });
   }
 };
+
+//-------------------------------------PasswordChange-------------------------------------------------//
+
+const passwordChange = async function (req, res) {
+  try {
+    // let userId = req.params.userId;
+    let userId = req.user._id;
+    const { currentPassword,Password, confirmPassword } = req.body;
+
+    if(Password != confirmPassword){
+      return res.status(400).send({status:false, message:"password and confirm password should be same"})
+    }
+
+    let hash = await userModel.findOne({_id: userId })
+
+    if (hash == null) {
+      return res.status(400).send({ status: false, message: "user does not exist" });
+    }
+
+    let compare = await bcrypt.compare(currentPassword, hash.password)
+
+    if (!compare) {
+      return res.status(401).send({ status: false, message: "Incorrect Password" });
+    }
+
+    if (req.idDecoded != userId.toString()) {
+      return res.status(401).send({ status: false, message: "you aren't authorized" });
+    }
+    const data = await userModel.findOne({ _id: userId });
+    if (data) {
+      const newpassword = await bcrypt.hash(Password, 10);
+
+      const userData = await userModel.updateOne({ _id: userId }, { $set: { password: newpassword } })
+
+      return res.status(200).send({ status: true ,message: "password Updated successfully",data : data })
+    }
+    else {
+      res.status(200).send({ status: false, msg: "user not found" })
+    }
+
+  } catch (err) {
+    res.status(500).send({ status: false, message: err.message });
+  }
+};
+
 
 //-----------------------------------Get Api(get by userId)-----------------------------------------------//
 
@@ -203,7 +245,7 @@ const getUser = async function (req, res) {
 
 const updateUser = async function (req, res) {
   try {
-   
+
     let userId = req.params.userId
     let data = JSON.parse(JSON.stringify(req.body));
     let files = req.files;
@@ -248,7 +290,7 @@ const updateUser = async function (req, res) {
     //Validation for image    
     if (files.length === 1) {
       if (!Validator.isValidImageType(files[0].mimetype)) {
-        return res.status(400).send({status: false,message: "Only images can be uploaded (jpeg/jpg/png)"});
+        return res.status(400).send({ status: false, message: "Only images can be uploaded (jpeg/jpg/png)" });
       }
       let url = await uploadFile(files[0])
       data.profileImage = url
@@ -281,7 +323,7 @@ const updateUser = async function (req, res) {
     }
     //Validation for address    
     if ("address" in data) {
-     // console.log(data.address)
+      // console.log(data.address)
       //console.log(data)
       if (typeof data.address != "object") {
         return res.status(400).send({ status: false, message: "address shoud be an object" })
@@ -303,9 +345,9 @@ const updateUser = async function (req, res) {
           if (data.address.shipping.street.trim().length === 0) {
             return res.status(400).send({ status: false, message: "street can't be empty" })
           }
-          address.shipping.street=data.address.shipping.street
+          address.shipping.street = data.address.shipping.street
         }
-       // console.log(address)
+        // console.log(address)
 
         if ("city" in data.address.shipping) {
           if (typeof data.address.shipping.city != "string") {
@@ -314,7 +356,7 @@ const updateUser = async function (req, res) {
           if (data.address.shipping.city.trim().length === 0) {
             return res.status(400).send({ status: false, message: "city can't be empty" })
           }
-          address["shipping"]["city"]=data.address.shipping.city
+          address["shipping"]["city"] = data.address.shipping.city
 
         }
 
@@ -322,7 +364,7 @@ const updateUser = async function (req, res) {
           if (!Validator.isValidPincode(data.address.shipping.pincode)) {
             return res.status(400).send({ status: false, message: "pincode is invalid" });
           }
-          address["shipping"]["pincode"]=data.address.shipping.pincode
+          address["shipping"]["pincode"] = data.address.shipping.pincode
 
         }
       }
@@ -339,7 +381,7 @@ const updateUser = async function (req, res) {
           if (data.address.billing.street.trim().length === 0) {
             return res.status(400).send({ status: false, message: "street can't be empty" })
           }
-          address["billing"]["street"]=data.address.billing.street
+          address["billing"]["street"] = data.address.billing.street
 
         }
 
@@ -350,15 +392,15 @@ const updateUser = async function (req, res) {
           if (data.address.billing.city.trim().length === 0) {
             return res.status(400).send({ status: false, message: "city can't be empty" })
           }
-          address["billing"]["city"]=data.address.billing.city
+          address["billing"]["city"] = data.address.billing.city
 
         }
-        
+
         if ("pincode" in data.address.billing) {
           if (!Validator.isValidPincode(data.address.billing.pincode)) {
             return res.status(400).send({ status: false, message: "pincode is invalid" });
           }
-          address["billing"]["pincode"]=data.address.billing.pincode
+          address["billing"]["pincode"] = data.address.billing.pincode
         }
       }
       data.address = address
@@ -374,4 +416,4 @@ const updateUser = async function (req, res) {
   }
 };
 
-module.exports = { createUser, loginUser, getUser, updateUser };
+module.exports = { createUser, loginUser, getUser, updateUser, passwordChange };
